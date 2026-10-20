@@ -1,0 +1,21 @@
+== README example: n=5 source=0 ==
+  parent_edge = [-1, 0, 2, 3, -1], distance = [0, 3, -4, 0, null]
+  reachable target 3: route(target=3) = [0, 1, 2, 3], edge IDs [0,2,3], route cost 0
+  source: route(target=0) = [0]
+  reachable target 2 (negative edge wins over direct 8): route(target=2) = [0, 1, 2], edge IDs [0,2], route cost -4
+  unreachable target 4: route = []  (no-route result = empty array)
+== Tied and parallel edges: n=3 source=0 ==
+  parent_edge = [-1, 0, 4], distance = [0, 4, 4]
+  parallel edges 0->1 (ids 0,1 weight 4; id 2 weight 5): route(target=1) = [0, 1], edge IDs [0], route cost 4
+  tied routes to 2 (0->1->2 and direct 0->2, both cost 4): route(target=2) = [0, 2], edge IDs [4], route cost 4
+== Source in the middle: n=4 source=2 ==
+  parent_edge = [-1, -1, -1, 2], distance = [null, null, 0, 5]
+  reachable target 3: route(target=3) = [2, 3], edge IDs [2], route cost 5
+  unreachable target 0 (edge 0->2 points INTO the source): route = []
+== Defensive cases ==
+  cyclic graph (parent_edge empty): route = []
+  corrupt parent cycle 1<->2: route = []
+  parent edge that does not end at the vertex: route = []
+== Long chain (n=100000) ==
+  route length 100000, total weight 99999000000000, distance 99999000000000
+ALL ROUTE-HELPER CHECKS PASSED

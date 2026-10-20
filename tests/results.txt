@@ -1,0 +1,142 @@
+== Meta-tests: oracles vs brute force ==
+  400 random tiny graphs: DSU, MST, SCC, cycle test and DAG distances agree with brute force
+== Meta-tests: validators accept alternatives and reject invalid witnesses ==
+  accepted  forest ids [0, 1]
+  accepted  forest ids [1, 2]
+  accepted  forest ids [0, 2]
+  rejected  forest with duplicate id                     -> repeated edge id
+  rejected  forest too small                             -> forest must have n-c=2 edges, got 1
+  rejected  forest wrong cost field                      -> cost 3 != sum of selected weights 2
+  rejected  forest wrong component count                 -> components 2 != 1
+  accepted  optimal forest ignoring negative loop
+  rejected  non-optimal forest (heavier parallel edge)   -> not optimal: 7 vs optimum 3
+  rejected  forest using the self-loop                   -> self-loop selected
+  rejected  forest containing a cycle                    -> selected edges contain a cycle
+  accepted  scc labels [5,5,7,9] (README answer)
+  accepted  scc labels permuted
+  rejected  scc merged two components                    -> partition into SCCs is wrong
+  rejected  scc split a component                        -> partition into SCCs is wrong
+  rejected  scc duplicate condensation pair              -> duplicate condensation pair
+  rejected  scc missing condensation pair                -> condensation differs: missing=1 extra=0
+  rejected  scc internal pair included                   -> condensation differs: missing=0 extra=1
+  rejected  scc reversed pair                            -> condensation differs: missing=1 extra=1
+  accepted  topo [1,0,2,3]
+  accepted  topo alternative [0,1,2,3]
+  rejected  topo edge goes backward                      -> edge 0->2 goes backward
+  rejected  topo missing a vertex                        -> order is not a permutation of all vertices
+  rejected  topo says cyclic for a DAG                   -> acyclic flag should be True
+  accepted  topo cyclic -> false + []
+  rejected  topo cyclic with a non-empty order           -> order must be empty for a cyclic graph
+  rejected  topo says acyclic for a cycle                -> acyclic flag should be False
+  accepted  dag parent via tied edge ids 0 / 3
+  accepted  dag other tied witness ids 1 / 4
+  rejected  dag parent is a heavier parallel edge        -> parent edge of 1 is not on a shortest path
+  rejected  dag parent edge does not end at vertex       -> parent edge of 2 does not end at 2
+  rejected  dag wrong distance                           -> distance differs from oracle
+  rejected  dag source with a parent                     -> source must have distance 0 and parent -1
+  accepted  dag unreachable null / -1, distance -1 valid
+  rejected  dag unreachable reported as -1               -> distance differs from oracle
+  rejected  dag unreachable with parent id               -> unreachable vertex 2 must have parent -1
+  accepted  dag cycle unreachable from source -> false
+  rejected  dag ignores unreachable cycle                -> acyclic flag should be False
+== Hand-made cases (hand-justified expectations + semantic validation) ==
+  ping -> {"status": "ready"}
+  PASS dsu README example                                   why: 4->3 comps (size 2), 2 comps (size 3), (0,2) repeated, (3,3) self-union: nothing changes
+  PASS dsu n=0                                              why: no operations, no states
+  PASS dsu n=1 self-union                                   why: one vertex: components 1, largest 1
+  PASS dsu n=3 no operations                                why: no initial state is printed
+  PASS dsu repeated and reversed unions                     why: {0,1} twice more is idempotent; {2,3}; joining sizes 2+2 gives 4; self-union of 4 changes nothing
+  PASS dsu union by size                                    why: three pairs, then 2+2=4, then 4+2=6
+  PASS kruskal README example                               why: take 2 and 3, skip 4; vertex 3 is isolated -> 2 components
+  PASS kruskal n=0                                          why: empty graph
+  PASS kruskal n=1                                          why: single isolate
+  PASS kruskal only isolates                                why: 3 isolates
+  PASS kruskal negative self-loop + parallel                why: self-loop never chosen; cheapest 0-1 edge has weight 3 (ids 2 or 3)
+  PASS kruskal negative weights                             why: spanning tree needs 2 edges: -10 and -6
+  PASS kruskal cost beyond 32 bits                          why: 3e9 does not fit int
+  PASS kruskal negative cost beyond 32 bits                 why: -3e9 does not fit int
+  PASS kruskal all ties                                     why: any two of the three equal edges
+  PASS kruskal two trees + isolate                          why: {0,1,2}: 1+2=3, {3,4}: 2, {5} isolated -> 5
+  PASS kruskal restart needed for second component          why: -7 + 9, two components both must be visited
+  PASS prim README example                                  why: take 2 and 3, skip 4; vertex 3 is isolated -> 2 components
+  PASS prim n=0                                             why: empty graph
+  PASS prim n=1                                             why: single isolate
+  PASS prim only isolates                                   why: 3 isolates
+  PASS prim negative self-loop + parallel                   why: self-loop never chosen; cheapest 0-1 edge has weight 3 (ids 2 or 3)
+  PASS prim negative weights                                why: spanning tree needs 2 edges: -10 and -6
+  PASS prim cost beyond 32 bits                             why: 3e9 does not fit int
+  PASS prim negative cost beyond 32 bits                    why: -3e9 does not fit int
+  PASS prim all ties                                        why: any two of the three equal edges
+  PASS prim two trees + isolate                             why: {0,1,2}: 1+2=3, {3,4}: 2, {5} isolated -> 5
+  PASS prim restart needed for second component             why: -7 + 9, two components both must be visited
+  PASS scc README example                                   why: {0,1} -> {2} -> {3}
+  PASS scc n=0                                              why: empty graph
+  PASS scc self-loop only                                   why: internal edge excluded
+  PASS scc isolates                                         why: three singleton SCCs
+  PASS scc duplicate edges                                  why: duplicate cross edges give one pair each
+  PASS scc two cycles joined                                why: 3-cycle -> 2-cycle; several edges inside each
+  PASS scc diamond (no cycle)                               why: DAG: every vertex alone, 4 pairs
+  PASS scc multiple edges between two SCCs                  why: three cross edges collapse to one pair
+  PASS topo README example                                  why: 0,1 before 2 before 3
+  PASS topo n=0                                             why: empty graph is acyclic
+  PASS topo n=1                                             why: single vertex
+  PASS topo self-loop                                       why: self-loop is a cycle
+  PASS topo 2-cycle                                         why: 0->1->0
+  PASS topo cycle in a later component                      why: component {2,3,4} is cyclic although {0,1} is not
+  PASS topo cross edge to finished vertex                   why: second visit of 3 is an edge to a finished vertex, not a cycle
+  PASS topo forward edge to finished vertex + duplicates    why: forward and duplicate edges are fine
+  PASS topo isolates and reversed numbering                 why: 3,2,1 chain with isolate 0
+  PASS dag README example                                   why: 0->1->2->3 = 3-7+4 = 0; vertex 4 unreachable
+  PASS dag n=1                                              why: only the source
+  PASS dag source with unreachable predecessor              why: vertex 0 is not reachable from 1
+  PASS dag never relax from unreachable                     why: 0 is unreachable, so edge 0->3 (-100) must be ignored
+  PASS dag cycle unreachable from source                    why: whole-graph cycle check: 2<->3 is a cycle
+  PASS dag reachable self-loop                              why: self-loop is a cycle
+  PASS dag self-loop on unreachable vertex                  why: still cyclic
+  PASS dag tied and parallel edges                          why: vertex 1: 4 via ids 0/1; vertex 2: 4 via id 3 or id 4
+  PASS dag distance -1 is valid                             why: -1 is a real distance; vertex 2 is null
+  PASS dag distance beyond 32 bits                          why: 4e9 does not fit int
+  PASS dag negative distance beyond 32 bits                 why: -4e9 does not fit int
+  PASS dag source in the middle, edges both sides           why: predecessors of the source stay unreachable
+  57 hand cases in one process, 0.08s
+== Seeded random small cases (seed 777, 6 task kinds x 500) ==
+  random small                                    3000 requests, 0 failed, 0.15s wall (JVM start included)
+== State reset: repeated and mixed requests in ONE process ==
+  batch run twice in one process: identical answers = True
+  batch run in reverse order:     identical answers = True
+  small cases before/after 5 full-size requests: identical answers = True (0.79s)
+== Full-limit and deep cases (n<=1e5, m<=2.5e5), each in its own process ==
+  PASS dsu n=1e5 q=2.5e5 random                                   n=100000 m/q=250000 0.38s
+  PASS dsu n=1e5 chain unions (deep trees)                        n=100000 m/q=100002 0.22s
+  PASS dsu n=1e5 reverse chain                                    n=100000 m/q=99999  0.22s
+  PASS kruskal n=1e5 m=2.5e5 random weights +-1e9                 n=100000 m/q=250000 0.28s
+  PASS kruskal n=1e5 path of 1e9 (cost 99999e9)                   n=100000 m/q=99999  0.19s
+  PASS kruskal n=1e5 path of -1e9 + extra edges                   n=100000 m/q=250000 0.28s
+  PASS kruskal n=1e5 m=2.5e5 sparse components, loops             n=100000 m/q=250000 0.23s
+  PASS kruskal n=1e5 m=2.5e5 all parallel equal                   n=100000 m/q=250000 0.20s
+  PASS prim n=1e5 m=2.5e5 random weights +-1e9                    n=100000 m/q=250000 0.32s
+  PASS prim n=1e5 path of 1e9 (cost 99999e9)                      n=100000 m/q=99999  0.17s
+  PASS prim n=1e5 path of -1e9 + extra edges                      n=100000 m/q=250000 0.27s
+  PASS prim n=1e5 m=2.5e5 sparse components, loops                n=100000 m/q=250000 0.23s
+  PASS prim n=1e5 m=2.5e5 all parallel equal                      n=100000 m/q=250000 0.21s
+  PASS scc n=1e5 chain (deep, 1e5 singletons)                     n=100000 m/q=99999  0.21s
+  PASS scc n=1e5 big cycle (one giant SCC)                        n=100000 m/q=100000 0.18s
+  PASS scc n=1e5 reverse chain                                    n=100000 m/q=99999  0.21s
+  PASS scc n=1e5 m=2.5e5 random                                   n=100000 m/q=250000 0.29s
+  PASS scc n=2 m=2.5e5 duplicates                                 n=2      m/q=250000 0.20s
+  PASS scc n=1e5 many 2-cycles chained                            n=100000 m/q=149999 0.22s
+  PASS topo n=1e5 chain 0->1->...                                 n=100000 m/q=99999  0.17s
+  PASS topo n=1e5 reverse chain                                   n=100000 m/q=99999  0.18s
+  PASS topo n=1e5 chain closed into a cycle                       n=100000 m/q=100000 0.16s
+  PASS topo n=1e5 m=2.5e5 random DAG                              n=100000 m/q=250000 0.26s
+  PASS topo n=1e5 random DAG + one back edge                      n=100000 m/q=250000 0.24s
+  PASS topo n=1e5 star with 2.5e5 duplicate edges                 n=100000 m/q=250000 0.25s
+  PASS dag n=1e5 chain 1e9 (distance ~1e14)                       n=100000 m/q=99999  0.21s
+  PASS dag n=1e5 chain -1e9                                       n=100000 m/q=99999  0.22s
+  PASS dag n=1e5 reverse chain, source = last                     n=100000 m/q=99999  0.24s
+  PASS dag n=1e5 m=2.5e5 random DAG weights +-1e9                 n=100000 m/q=250000 0.24s
+  PASS dag n=1e5 DAG, cycle unreachable from source               n=100000 m/q=50001  0.13s
+  PASS dag n=1e5 source isolated, big DAG elsewhere               n=100000 m/q=99998  0.18s
+  all 31 full-size requests in one process: 0 failed, 2.86s wall
+
+TOTAL FAILURES: 0
